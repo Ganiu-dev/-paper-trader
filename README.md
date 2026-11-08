@@ -1,2 +1,2 @@
-# -paper-trader
-A realistic paper trading engine for crypto strategies with fee-inclusive P&amp;L.
+buy   $10.00  @ 699.16  ->  0.01428857 BNB    cash 90.0000
+sell  all     @ 699.17  ->  9.98015275 USDT   cash 99.98015275
