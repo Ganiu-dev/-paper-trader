@@ -44,13 +44,13 @@ Backtests and research runs:
 
 | File | Lines | What it is |
 | --- | ---: | --- |
-| `backtest.py` | 752 | Generic MA-crossover backtest over any interval |
-| `backtest_mss.py` | 655 | MSS breakout backtest with composable exits |
-| `backtest_rsi.py` | 661 | RSI mean-reversion backtest |
+| `backtest.py` | 794 | Generic MA-crossover backtest over any interval |
+| `backtest_mss.py` | 753 | MSS breakout backtest with composable exits |
+| `backtest_rsi.py` | 753 | RSI mean-reversion backtest |
 | `backtest_multi.py` | 517 | Pools trade statistics across BTC/ETH/SOL |
 | `split_half.py` | 244 | Fit/test split with frozen parameters |
 
-Tests — 234 in total, all passing:
+Tests — 261 in total, all passing:
 
 | File | Tests |
 | --- | ---: |
@@ -58,8 +58,9 @@ Tests — 234 in total, all passing:
 | `test_strategy.py` | 40 |
 | `test_strategy_mss.py` | 27 |
 | `test_strategy_rsi.py` | 51 |
-| `test_backtest_mss.py` | 40 |
-| `test_backtest_rsi.py` | 35 |
+| `test_backtest.py` | 22 |
+| `test_backtest_mss.py` | 42 |
+| `test_backtest_rsi.py` | 38 |
 | `test_run_paper_trader.py` | 7 |
 
 Data files: `paper_ledger.json`, `paper_trades.jsonl`,
