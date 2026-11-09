@@ -1,40 +1,77 @@
-# 📈 Paper Trader: Algorithmic Crypto Engine & Backtester
+# paper-trader
 
-A production-grade Python framework for simulating crypto trading strategies, evaluating statistical significance, and executing paper trades with strict fee-inclusive accounting.
+A paper-trading research engine. It fetches public Binance candles, runs a
+strategy over them, and books simulated fills against a JSON ledger with a
+0.1% taker fee charged per side. No keys, no signing, no orders.
 
-This repository contains a complete quantitative research pipeline: from data fetching and strategy evaluation to historical backtesting, split-half out-of-sample validation, and live paper trading.
+The point of the repository is the tests and the rejections. Six experiments
+were built and measured; each is documented below with the numbers that
+decided it. One of them (T3/T4) was not disproved — it simply cannot be shown
+to work on the sample available.
 
-## 🏗️ Architecture
+> This is an educational research engine to test statistical significance, not
+> a money printer. The funding module is a yield scanner, not a full
+> delta-neutral portfolio simulator.
 
-The system is divided into modular, testable components:
-- **`trade_engine.py`**: The core simulator. Manages the paper ledger and enforces strict 0.1% fees per side.
-- **`strategy.py`**: Moving Average (MA) Crossover strategy.
-- **`strategy_mss.py`**: Market Structure Shift (MSS) fractal breakout strategy.
-- **`strategy_rsi.py`**: RSI Mean Reversion strategy.
-- **`strategy_funding.py`**: Funding Rate Arbitrage (Delta-Neutral yield capture).
-- **`backtest_*.py`**: Replays historical data bar-by-bar, modeling strict fee drag.
-- **`split_half.py`**: Out-of-sample validation to prevent curve-fitting.
+## Safety
 
-## 📊 Strategies Evaluated & Rejected
+`TRADING_ENABLED` is `False` in `trade_engine.py` and every money function
+calls `_assert_simulation()` first, so flipping the flag raises rather than
+sends anything. The only outbound requests are public `GET` calls to
+`api.binance.com` for prices and klines (`strategy.py`) and funding rates
+(`strategy_funding.py`). There is no private endpoint, no API key and no
+wallet code anywhere in the tree.
 
-This repo doesn't just claim an edge; it proves (or disproves) it using statistical significance testing (T-stat, p-value). 
+## Files
 
-1. **MA Crossover (1h/4h)**: *Result: No exploitable edge. Fees ate 83% of gross profit.*
-2. **MSS Breakout (4h)**: *Result: A churn harness. The trailing stop bled out 190 breakouts.*
-3. **RSI Mean Reversion (4h)**: *Result: Rejected. Tested on BNB (T+1.33), but pooled across BTC/ETH/SOL it failed completely (T-stat −2.57). The BNB edge was pure curve-fitting.*
-4. **Funding Rate Gating**: *Result: Rejected. A threshold-gated entry throws away 98% of the yield. Funding capture is a continuous yield play, not an event-driven trade.*
+Engine and runner:
 
-## 🛡️ Safety & Anti-Curve-Fitting Features
+| File | Lines | What it is |
+| --- | ---: | --- |
+| `trade_engine.py` | 671 | Ledger, `sim_buy` / `sim_sell`, fee accounting, status |
+| `run_paper_trader.py` | 283 | 60-second loop: fetch candles, evaluate, act, latch |
+| `strategy.py` | 363 | MA crossover on closed 1h candles |
 
-- **`TRADING_ENABLED = False`**: The engine physically raises an exception if any script attempts to execute a live order.
-- **Sandboxing (`@sandboxes_engine`)**: Backtests run in a temporary directory. Running a backtest will **never** overwrite your live `paper_ledger.json`.
-- **No Lookahead**: Strategies are strictly causal. All indicators only use data up to bar `i`.
-- **Statistical Rigor**: T-stats and p-values are computed via a pure-Python Student-t distribution, and trades are pooled across timeframes to prevent p-hacking.
+Strategies:
 
-## 🚀 Quick Start
+| File | Lines | What it is |
+| --- | ---: | --- |
+| `strategy_mss.py` | 402 | Market-structure-shift breakout + trailing stop |
+| `strategy_rsi.py` | 546 | RSI(14) mean reversion, optional 200-MA trend gate |
+| `strategy_funding.py` | 545 | Perp funding-rate scanner (read-only, no positions) |
 
-You don't need any external dependencies. This runs on the Python Standard Library (Python 3.10+).
+Backtests and research runs:
 
-**1. Run a Backtest**
+| File | Lines | What it is |
+| --- | ---: | --- |
+| `backtest.py` | 752 | Generic MA-crossover backtest over any interval |
+| `backtest_mss.py` | 655 | MSS breakout backtest with composable exits |
+| `backtest_rsi.py` | 661 | RSI mean-reversion backtest |
+| `backtest_multi.py` | 517 | Pools trade statistics across BTC/ETH/SOL |
+| `split_half.py` | 244 | Fit/test split with frozen parameters |
+
+Tests — 234 in total, all passing:
+
+| File | Tests |
+| --- | ---: |
+| `test_trade_engine.py` | 34 |
+| `test_strategy.py` | 40 |
+| `test_strategy_mss.py` | 27 |
+| `test_strategy_rsi.py` | 51 |
+| `test_backtest_mss.py` | 40 |
+| `test_backtest_rsi.py` | 35 |
+| `test_run_paper_trader.py` | 7 |
+
+Data files: `paper_ledger.json`, `paper_trades.jsonl`,
+`split_half_results.json`, `split_half_results_trend.json`,
+`backtest_multi_results.json`.
+
+## Running it
+
 ```bash
-python3 backtest_rsi.py --symbol BNB --days 1095
+python3 run_paper_trader.py --symbol bnb --once --dry-run
+python3 run_paper_trader.py --symbol bnb --interval 300
+python3 backtest.py --symbol BNB --days 365 --interval 1h
+python3 backtest_mss.py --symbol BNB --days 1095 --interval 4h
+python3 backtest_multi.py
+python3 split_half.py
